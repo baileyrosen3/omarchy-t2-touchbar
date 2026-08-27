@@ -60,15 +60,15 @@ MediaLayerKeys = [
 
 AppLayerKeys = [
   { Icon = "app-back",          Layer = 0, IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-zen",           Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F1" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-herdr",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F2" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-tradewasm",     Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F3" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-youtube-music", Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F4" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-youtube",       Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F5" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-x",             Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F6" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-claude",        Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F7" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-codex",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F8" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-gemini",        Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F9" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-gmail",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F10" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-files",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F11" ], IconWidth = 34, IconHeight = 34 }
+  { Icon = "app-zen",           Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F1" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-herdr",         Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F2" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-tradewasm",     Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F3" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-youtube-music", Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F4" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-youtube",       Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F5" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-x",             Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F6" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-claude",        Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F7" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-codex",         Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F8" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-gemini",        Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F9" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-gmail",         Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F10" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-files",         Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F11" ], IconWidth = 34, IconHeight = 34 }
 ]
