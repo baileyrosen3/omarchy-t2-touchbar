@@ -55,8 +55,7 @@ use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 
 const BUTTON_SPACING_PX: i32 = 8;
 const EDGE_INSET_PX: f64 = 24.0;
-const BUTTON_COLOR_INACTIVE: f64 = 0.200;
-const BUTTON_COLOR_ACTIVE: f64 = 0.400;
+const OUTLINE_WIDTH_RATIO: f64 = 1.5;
 const DEFAULT_ICON_SIZE: i32 = 48;
 const TIMEOUT_MS: i32 = 10 * 1000;
 
@@ -759,18 +758,6 @@ impl Button {
             toggle_keys(uinput, &self.action, active as i32);
         }
     }
-    fn set_background_color(&self, c: &Context, color: f64) {
-        if let ButtonImage::Battery(battery, _, _) = &self.image {
-            let (_, state) = get_battery_state(battery);
-            match state {
-                BatteryState::NotCharging => c.set_source_rgb(color, color, color),
-                BatteryState::Charging => c.set_source_rgb(0.0, color, 0.0),
-                BatteryState::Low => c.set_source_rgb(color, 0.0, 0.0),
-            }
-        } else {
-            c.set_source_rgb(color, color, color);
-        }
-    }
 }
 
 #[derive(Default)]
@@ -845,9 +832,6 @@ impl FunctionLayer {
             - (BUTTON_SPACING_PX * (self.virtual_button_count - 1) as i32))
             as f64
             / self.virtual_button_count as f64;
-        let radius = 8.0f64;
-        let bot = (height as f64) * 0.04;
-        let top = (height as f64) * 0.96;
         let (pixel_shift_x, pixel_shift_y) = pixel_shift;
 
         if complete_redraw {
@@ -894,71 +878,15 @@ impl FunctionLayer {
                 + ((end - start - 1) as f64 * (virtual_button_width + BUTTON_SPACING_PX as f64))
                     .floor();
 
-            let color = if button.active {
-                BUTTON_COLOR_ACTIVE
-            } else if config.show_button_outlines {
-                BUTTON_COLOR_INACTIVE
-            } else {
-                0.0
-            };
             if !complete_redraw {
                 c.set_source_rgb(
                     config.background_color.0,
                     config.background_color.1,
                     config.background_color.2,
                 );
-                c.rectangle(
-                    left_edge,
-                    bot - radius,
-                    button_width,
-                    top - bot + radius * 2.0,
-                );
+                c.rectangle(left_edge, 0.0, button_width, height as f64);
                 c.fill().unwrap();
             }
-            if !matches!(button.image, ButtonImage::Spacer)
-                && (config.show_button_outlines || button.active)
-            {
-                button.set_background_color(&c, color);
-                // draw box with rounded corners
-                c.new_sub_path();
-                let left = left_edge + radius;
-                let right = (left_edge + button_width.ceil()) - radius;
-                c.arc(
-                    right,
-                    bot,
-                    radius,
-                    (-90.0f64).to_radians(),
-                    (0.0f64).to_radians(),
-                );
-                c.arc(
-                    right,
-                    top,
-                    radius,
-                    (0.0f64).to_radians(),
-                    (90.0f64).to_radians(),
-                );
-                c.arc(
-                    left,
-                    top,
-                    radius,
-                    (90.0f64).to_radians(),
-                    (180.0f64).to_radians(),
-                );
-                c.arc(
-                    left,
-                    bot,
-                    radius,
-                    (180.0f64).to_radians(),
-                    (270.0f64).to_radians(),
-                );
-                c.close_path();
-                c.fill().unwrap();
-            }
-            c.set_source_rgb(
-                config.foreground_color.0,
-                config.foreground_color.1,
-                config.foreground_color.2,
-            );
             // Distribute icon centers evenly from edge to edge. Spacer slots remain
             // part of the scale, producing deliberate larger gaps between groups.
             let render_left_edge = if button.icon_width > 0.0
@@ -975,6 +903,31 @@ impl FunctionLayer {
             } else {
                 left_edge
             };
+            if !matches!(button.image, ButtonImage::Spacer)
+                && (config.show_button_outlines || button.active)
+            {
+                // A flush, square card makes the bar read as one clean grid. Its
+                // height:width ratio is 1:1.5, while its top and bottom meet the
+                // physical edges of the Touch Bar.
+                let card_width = height as f64 * OUTLINE_WIDTH_RATIO;
+                let icon_center = render_left_edge + button_width / 2.0;
+                let card_left = icon_center - card_width / 2.0;
+                let alpha = if button.active { 0.82 } else { 0.42 };
+                c.set_source_rgba(
+                    config.foreground_color.0,
+                    config.foreground_color.1,
+                    config.foreground_color.2,
+                    alpha,
+                );
+                c.set_line_width(if button.active { 2.0 } else { 1.0 });
+                c.rectangle(card_left, 0.0, card_width, height as f64);
+                c.stroke().unwrap();
+            }
+            c.set_source_rgb(
+                config.foreground_color.0,
+                config.foreground_color.1,
+                config.foreground_color.2,
+            );
             button.render(
                 &c,
                 height,
@@ -986,9 +939,9 @@ impl FunctionLayer {
             button.changed = false;
 
             if !complete_redraw {
-                let clip_top = (height as f64 - top - radius).max(0.0).floor() as u16;
+                let clip_top = 0;
                 let clip_left = left_edge.max(0.0).floor() as u16;
-                let clip_bottom = (height as f64 - bot + radius).min(height as f64).ceil() as u16;
+                let clip_bottom = height as u16;
                 let clip_right = (left_edge + button_width).min(width as f64).ceil() as u16;
                 modified_regions.push(ClipRect::new(clip_top, clip_left, clip_bottom, clip_right));
             }

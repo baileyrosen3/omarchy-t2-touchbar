@@ -1,5 +1,5 @@
 MediaLayerDefault = false
-ShowButtonOutlines = false
+ShowButtonOutlines = true
 EnablePixelShift = false
 FontTemplate = "@FONT@:bold"
 BackgroundColor = "@BACKGROUND@"
