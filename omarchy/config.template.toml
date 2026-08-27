@@ -1,0 +1,74 @@
+MediaLayerDefault = false
+ShowButtonOutlines = false
+EnablePixelShift = false
+FontTemplate = "@FONT@:bold"
+BackgroundColor = "@BACKGROUND@"
+ForegroundColor = "@FOREGROUND@"
+AdaptiveBrightness = false
+ActiveBrightness = 255
+DoublePressSwitchLayers = 220
+
+PrimaryLayerKeys = [
+  # Apps and capture
+  { Icon = "apps-menu",       Layer = 2, IconWidth = 38, IconHeight = 38 },
+  { Icon = "menu",            Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F1" ], IconWidth = 40, IconHeight = 40 },
+  { Icon = "terminal",        Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F2" ], IconWidth = 40, IconHeight = 40 },
+  { Icon = "screenshot",      Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F4" ], IconWidth = 40, IconHeight = 40 },
+
+  { Stretch = 1 },
+
+  # Display and keyboard lighting
+  { Icon = "brightness-low",  Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F5" ], IconWidth = 40, IconHeight = 40 },
+  { Icon = "brightness-high", Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F6" ], IconWidth = 40, IconHeight = 40 },
+  { Icon = "keyboard-low",    Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F7" ], IconWidth = 40, IconHeight = 40 },
+  { Icon = "keyboard-high",   Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F8" ], IconWidth = 40, IconHeight = 40 },
+
+  { Stretch = 1 },
+
+  # Media transport
+  { Icon = "fast_rewind",     Action = "PreviousSong", IconWidth = 40, IconHeight = 40 },
+  { Icon = "play_pause",      Action = "PlayPause", IconWidth = 40, IconHeight = 40 },
+  { Icon = "fast_forward",    Action = "NextSong", IconWidth = 40, IconHeight = 40 },
+
+  { Stretch = 1 },
+
+  # Output volume
+  { Icon = "volume_off",      Action = "Mute", IconWidth = 40, IconHeight = 40 },
+  { Icon = "volume_down",     Action = "VolumeDown", IconWidth = 40, IconHeight = 40 },
+  { Icon = "volume_up",       Action = "VolumeUp", IconWidth = 40, IconHeight = 40 },
+
+  { Stretch = 1 },
+
+  # Voice recording
+  { Icon = "dictate",         Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F3" ], IconWidth = 40, IconHeight = 40 }
+]
+
+MediaLayerKeys = [
+  { Text = "F1",  Action = "F1" },
+  { Text = "F2",  Action = "F2" },
+  { Text = "F3",  Action = "F3" },
+  { Text = "F4",  Action = "F4" },
+  { Text = "F5",  Action = "F5" },
+  { Text = "F6",  Action = "F6" },
+  { Text = "F7",  Action = "F7" },
+  { Text = "F8",  Action = "F8" },
+  { Text = "F9",  Action = "F9" },
+  { Text = "F10", Action = "F10" },
+  { Text = "F11", Action = "F11" },
+  { Text = "F12", Action = "F12" }
+]
+
+AppLayerKeys = [
+  { Icon = "app-back",          Layer = 0, IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-zen",           Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F1" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-herdr",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F2" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-tradewasm",     Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F3" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-youtube-music", Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F4" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-youtube",       Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F5" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-x",             Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F6" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-claude",        Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F7" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-codex",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F8" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-gemini",        Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F9" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-gmail",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F10" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-files",         Action = [ "LeftMeta", "LeftCtrl", "LeftAlt", "F11" ], IconWidth = 34, IconHeight = 34 }
+]

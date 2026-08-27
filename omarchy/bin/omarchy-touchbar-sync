@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+user_home=${TOUCHBAR_USER_HOME:?TOUCHBAR_USER_HOME must be set by the systemd unit}
+source_dir="$user_home/.config/omarchy/touchbar/build"
+target_dir=/etc/tiny-dfr
+
+test -f "$source_dir/.ready"
+install -d -m 0755 "$target_dir"
+find "$target_dir" -mindepth 1 -maxdepth 1 -type f -delete
+cp -a "$source_dir"/. "$target_dir"/
+chown -R root:root "$target_dir"
+find "$target_dir" -type d -exec chmod 0755 {} +
+find "$target_dir" -type f -exec chmod 0644 {} +

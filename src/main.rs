@@ -53,7 +53,7 @@ use config::{ButtonConfig, Config};
 use display::DrmBackend;
 use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 
-const BUTTON_SPACING_PX: i32 = 16;
+const BUTTON_SPACING_PX: i32 = 8;
 const BUTTON_COLOR_INACTIVE: f64 = 0.200;
 const BUTTON_COLOR_ACTIVE: f64 = 0.400;
 const DEFAULT_ICON_SIZE: i32 = 48;
@@ -104,6 +104,7 @@ struct Button {
     action: Vec<Key>,
     icon_width: f64,
     icon_height: f64,
+    layer: Option<usize>,
 }
 
 fn try_load_svg(path: &str) -> Result<ButtonImage> {
@@ -253,7 +254,8 @@ fn get_battery_state(battery: &str) -> (u32, BatteryState) {
 
 impl Button {
     fn with_config(cfg: ButtonConfig) -> Button {
-        if let Some(text) = cfg.text {
+        let layer = cfg.layer;
+        let mut button = if let Some(text) = cfg.text {
             Button::new_text(text, cfg.action)
         } else if let Some(icon) = cfg.icon {
             Button::new_icon(
@@ -273,7 +275,9 @@ impl Button {
             }
         } else {
             Button::new_spacer()
-        }
+        };
+        button.layer = layer;
+        button
     }
     fn new_spacer() -> Button {
         Button {
@@ -283,6 +287,7 @@ impl Button {
             image: ButtonImage::Spacer,
             icon_width: 0.0,
             icon_height: 0.0,
+            layer: None,
         }
     }
     fn new_text(text: String, action: Vec<Key>) -> Button {
@@ -293,6 +298,7 @@ impl Button {
             image: ButtonImage::Text(text),
             icon_width: 0.0,
             icon_height: 0.0,
+            layer: None,
         }
     }
     fn new_icon(
@@ -311,6 +317,7 @@ impl Button {
             icon_height: icon_height as f64,
             active: false,
             changed: false,
+            layer: None,
         }
     }
     fn load_battery_image(icon: &str, theme: Option<impl AsRef<str>>) -> Handle {
@@ -331,15 +338,25 @@ impl Button {
         let mut plain = Vec::new();
         let mut charging = Vec::new();
         for icon in [
-            "battery_0_bar", "battery_1_bar", "battery_2_bar", "battery_3_bar",
-            "battery_4_bar", "battery_5_bar", "battery_6_bar", "battery_full",
+            "battery_0_bar",
+            "battery_1_bar",
+            "battery_2_bar",
+            "battery_3_bar",
+            "battery_4_bar",
+            "battery_5_bar",
+            "battery_6_bar",
+            "battery_full",
         ] {
             plain.push(Self::load_battery_image(icon, theme.as_ref()));
         }
         for icon in [
-            "battery_charging_20", "battery_charging_30", "battery_charging_50",
-            "battery_charging_60", "battery_charging_80",
-            "battery_charging_90", "battery_charging_full",
+            "battery_charging_20",
+            "battery_charging_30",
+            "battery_charging_50",
+            "battery_charging_60",
+            "battery_charging_80",
+            "battery_charging_90",
+            "battery_charging_full",
         ] {
             charging.push(Self::load_battery_image(icon, theme.as_ref()));
         }
@@ -364,6 +381,7 @@ impl Button {
             ),
             icon_width: 0.0,
             icon_height: 0.0,
+            layer: None,
         }
     }
 
@@ -391,6 +409,7 @@ impl Button {
             image: ButtonImage::Time(format_items, locale),
             icon_width: 0.0,
             icon_height: 0.0,
+            layer: None,
         }
     }
     fn needs_faster_refresh(&self) -> bool {
@@ -607,18 +626,33 @@ impl FunctionLayer {
             as f64
             / self.virtual_button_count as f64;
         let radius = 8.0f64;
-        let bot = (height as f64) * 0.15;
-        let top = (height as f64) * 0.85;
+        let bot = (height as f64) * 0.04;
+        let top = (height as f64) * 0.96;
         let (pixel_shift_x, pixel_shift_y) = pixel_shift;
 
         if complete_redraw {
-            c.set_source_rgb(0.0, 0.0, 0.0);
+            c.set_source_rgb(
+                config.background_color.0,
+                config.background_color.1,
+                config.background_color.2,
+            );
             c.paint().unwrap();
         }
         c.set_font_face(&config.font_face);
         c.set_font_size(32.0);
 
-        for i in 0..self.buttons.len() {
+        let button_count = self.buttons.len();
+        let first_icon_width = self
+            .buttons
+            .first()
+            .map(|(_, button)| button.icon_width)
+            .unwrap_or(0.0);
+        let last_icon_width = self
+            .buttons
+            .last()
+            .map(|(_, button)| button.icon_width)
+            .unwrap_or(0.0);
+        for i in 0..button_count {
             let end = if i + 1 < self.buttons.len() {
                 self.buttons[i + 1].0
             } else {
@@ -648,7 +682,11 @@ impl FunctionLayer {
                 0.0
             };
             if !complete_redraw {
-                c.set_source_rgb(0.0, 0.0, 0.0);
+                c.set_source_rgb(
+                    config.background_color.0,
+                    config.background_color.1,
+                    config.background_color.2,
+                );
                 c.rectangle(
                     left_edge,
                     bot - radius,
@@ -657,7 +695,9 @@ impl FunctionLayer {
                 );
                 c.fill().unwrap();
             }
-            if !matches!(button.image, ButtonImage::Spacer) {
+            if !matches!(button.image, ButtonImage::Spacer)
+                && (config.show_button_outlines || button.active)
+            {
                 button.set_background_color(&c, color);
                 // draw box with rounded corners
                 c.new_sub_path();
@@ -694,11 +734,31 @@ impl FunctionLayer {
                 c.close_path();
                 c.fill().unwrap();
             }
-            c.set_source_rgb(1.0, 1.0, 1.0);
+            c.set_source_rgb(
+                config.foreground_color.0,
+                config.foreground_color.1,
+                config.foreground_color.2,
+            );
+            // Distribute icon centers evenly from edge to edge. Spacer slots remain
+            // part of the scale, producing deliberate larger gaps between groups.
+            let render_left_edge = if button.icon_width > 0.0
+                && self.virtual_button_count > 1
+                && first_icon_width > 0.0
+                && last_icon_width > 0.0
+            {
+                let slot_center = (start + end) as f64 / 2.0;
+                let position = (slot_center - 0.5) / (self.virtual_button_count as f64 - 1.0);
+                let left_center = 4.0 + first_icon_width / 2.0;
+                let right_center = width as f64 - 4.0 - last_icon_width / 2.0;
+                let icon_center = left_center + position * (right_center - left_center);
+                icon_center - button_width / 2.0
+            } else {
+                left_edge
+            };
             button.render(
                 &c,
                 height,
-                left_edge,
+                render_left_edge,
                 button_width.ceil() as u64,
                 pixel_shift_y,
             );
@@ -706,12 +766,11 @@ impl FunctionLayer {
             button.changed = false;
 
             if !complete_redraw {
-                modified_regions.push(ClipRect::new(
-                    height as u16 - top as u16 - radius as u16,
-                    left_edge as u16,
-                    height as u16 - bot as u16 + radius as u16,
-                    left_edge as u16 + button_width as u16,
-                ));
+                let clip_top = (height as f64 - top - radius).max(0.0).floor() as u16;
+                let clip_left = left_edge.max(0.0).floor() as u16;
+                let clip_bottom = (height as f64 - bot + radius).min(height as f64).ceil() as u16;
+                let clip_right = (left_edge + button_width).min(width as f64).ceil() as u16;
+                modified_regions.push(ClipRect::new(clip_top, clip_left, clip_bottom, clip_right));
             }
         }
 
@@ -723,40 +782,35 @@ impl FunctionLayer {
             (width as i32 - (BUTTON_SPACING_PX * (self.virtual_button_count - 1) as i32)) as f64
                 / self.virtual_button_count as f64;
 
-        let i = i.unwrap_or_else(|| {
-            let virtual_i = (x / (width as f64 / self.virtual_button_count as f64)) as usize;
-            self.buttons
-                .iter()
-                .position(|(start, _)| *start > virtual_i)
-                .unwrap_or(self.buttons.len())
-                - 1
-        });
-        if i >= self.buttons.len() {
+        if y < 0.1 * height as f64 || y > 0.9 * height as f64 {
             return None;
         }
 
-        let start = self.buttons[i].0;
-        let end = if i + 1 < self.buttons.len() {
-            self.buttons[i + 1].0
-        } else {
-            self.virtual_button_count
+        let candidates: Box<dyn Iterator<Item = usize>> = match i {
+            Some(index) => Box::new(std::iter::once(index)),
+            None => Box::new(0..self.buttons.len()),
         };
 
-        let left_edge = (start as f64 * (virtual_button_width + BUTTON_SPACING_PX as f64)).floor();
-
-        let button_width = virtual_button_width
-            + ((end - start - 1) as f64 * (virtual_button_width + BUTTON_SPACING_PX as f64))
-                .floor();
-
-        if x < left_edge
-            || x > (left_edge + button_width)
-            || y < 0.1 * height as f64
-            || y > 0.9 * height as f64
-        {
-            return None;
+        for index in candidates {
+            if index >= self.buttons.len() {
+                continue;
+            }
+            let start = self.buttons[index].0;
+            let end = if index + 1 < self.buttons.len() {
+                self.buttons[index + 1].0
+            } else {
+                self.virtual_button_count
+            };
+            let left = (start as f64 * (virtual_button_width + BUTTON_SPACING_PX as f64)).floor();
+            let button_width = virtual_button_width
+                + ((end - start - 1) as f64 * (virtual_button_width + BUTTON_SPACING_PX as f64))
+                    .floor();
+            if x >= left && x <= left + button_width {
+                return Some(index);
+            }
         }
 
-        Some(i)
+        None
     }
 }
 
@@ -995,8 +1049,12 @@ fn real_main(drm: &mut DrmBackend) {
                 }
                 Event::Keyboard(KeyboardEvent::Key(key)) => {
                     if key.key() == Key::Fn as u32 {
-                        if cfg.double_press_switch_layers > 0 && key.key_state() == KeyState::Pressed {
-                            if last.elapsed() < Duration::from_millis(cfg.double_press_switch_layers.into()) {
+                        if cfg.double_press_switch_layers > 0
+                            && key.key_state() == KeyState::Pressed
+                        {
+                            if last.elapsed()
+                                < Duration::from_millis(cfg.double_press_switch_layers.into())
+                            {
                                 layers.swap(0, 1);
                             }
                             last = Instant::now();
@@ -1020,6 +1078,13 @@ fn real_main(drm: &mut DrmBackend) {
                             let x = dn.x_transformed(width as u32);
                             let y = dn.y_transformed(height as u32);
                             if let Some(btn) = layers[active_layer].hit(width, height, x, y, None) {
+                                if let Some(target) = layers[active_layer].buttons[btn].1.layer {
+                                    if target < layers.len() {
+                                        active_layer = target;
+                                        needs_complete_redraw = true;
+                                    }
+                                    continue;
+                                }
                                 touches.insert(dn.seat_slot(), (active_layer, btn));
                                 layers[active_layer].buttons[btn]
                                     .1

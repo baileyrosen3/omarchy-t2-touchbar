@@ -23,6 +23,8 @@ pub struct Config {
     pub adaptive_brightness: bool,
     pub active_brightness: u32,
     pub double_press_switch_layers: u32,
+    pub background_color: (f64, f64, f64),
+    pub foreground_color: (f64, f64, f64),
 }
 
 #[derive(Deserialize)]
@@ -35,8 +37,27 @@ struct ConfigProxy {
     adaptive_brightness: Option<bool>,
     active_brightness: Option<u32>,
     double_press_switch_layers: Option<u32>,
+    background_color: Option<String>,
+    foreground_color: Option<String>,
     primary_layer_keys: Option<Vec<ButtonConfig>>,
     media_layer_keys: Option<Vec<ButtonConfig>>,
+    app_layer_keys: Option<Vec<ButtonConfig>>,
+}
+
+fn parse_color(value: &str, fallback: (f64, f64, f64)) -> (f64, f64, f64) {
+    let hex = value.trim().trim_start_matches('#');
+    if hex.len() != 6 {
+        return fallback;
+    }
+    let channel = |range| {
+        u8::from_str_radix(&hex[range], 16)
+            .ok()
+            .map(|v| v as f64 / 255.0)
+    };
+    match (channel(0..2), channel(2..4), channel(4..6)) {
+        (Some(r), Some(g), Some(b)) => (r, g, b),
+        _ => fallback,
+    }
 }
 
 fn array_or_single<'de, D>(deserializer: D) -> Result<Vec<Key>, D::Error>
@@ -81,6 +102,7 @@ pub struct ButtonConfig {
     pub stretch: Option<usize>,
     pub icon_width: Option<i32>,
     pub icon_height: Option<i32>,
+    pub layer: Option<usize>,
 }
 
 fn load_font(name: &str) -> FontFace {
@@ -98,7 +120,7 @@ fn load_font(name: &str) -> FontFace {
     FontFace::create_from_ft(&face).unwrap()
 }
 
-fn load_config(width: u16) -> (Config, [FunctionLayer; 2]) {
+fn load_config(width: u16) -> (Config, Vec<FunctionLayer>) {
     let mut base =
         toml::from_str::<ConfigProxy>(&read_to_string("/usr/share/tiny-dfr/config.toml").unwrap())
             .unwrap();
@@ -112,9 +134,14 @@ fn load_config(width: u16) -> (Config, [FunctionLayer; 2]) {
         base.font_template = user.font_template.or(base.font_template);
         base.adaptive_brightness = user.adaptive_brightness.or(base.adaptive_brightness);
         base.media_layer_keys = user.media_layer_keys.or(base.media_layer_keys);
+        base.app_layer_keys = user.app_layer_keys.or(base.app_layer_keys);
         base.primary_layer_keys = user.primary_layer_keys.or(base.primary_layer_keys);
         base.active_brightness = user.active_brightness.or(base.active_brightness);
-        base.double_press_switch_layers = user.double_press_switch_layers.or(base.double_press_switch_layers);
+        base.double_press_switch_layers = user
+            .double_press_switch_layers
+            .or(base.double_press_switch_layers);
+        base.background_color = user.background_color.or(base.background_color);
+        base.foreground_color = user.foreground_color.or(base.foreground_color);
     };
     let mut media_layer_keys = base.media_layer_keys.unwrap();
     let mut primary_layer_keys = base.primary_layer_keys.unwrap();
@@ -133,17 +160,21 @@ fn load_config(width: u16) -> (Config, [FunctionLayer; 2]) {
                     battery: None,
                     icon_width: None,
                     icon_height: None,
+                    layer: None,
                 },
             );
         }
     }
     let media_layer = FunctionLayer::with_config(media_layer_keys);
     let fkey_layer = FunctionLayer::with_config(primary_layer_keys);
-    let layers = if base.media_layer_default.unwrap() {
-        [media_layer, fkey_layer]
+    let mut layers = if base.media_layer_default.unwrap() {
+        vec![media_layer, fkey_layer]
     } else {
-        [fkey_layer, media_layer]
+        vec![fkey_layer, media_layer]
     };
+    if let Some(app_layer_keys) = base.app_layer_keys {
+        layers.push(FunctionLayer::with_config(app_layer_keys));
+    }
     let cfg = Config {
         show_button_outlines: base.show_button_outlines.unwrap(),
         enable_pixel_shift: base.enable_pixel_shift.unwrap(),
@@ -151,6 +182,14 @@ fn load_config(width: u16) -> (Config, [FunctionLayer; 2]) {
         font_face: load_font(&base.font_template.unwrap()),
         active_brightness: base.active_brightness.unwrap(),
         double_press_switch_layers: base.double_press_switch_layers.unwrap(),
+        background_color: parse_color(
+            base.background_color.as_deref().unwrap_or("#000000"),
+            (0.0, 0.0, 0.0),
+        ),
+        foreground_color: parse_color(
+            base.foreground_color.as_deref().unwrap_or("#ffffff"),
+            (1.0, 1.0, 1.0),
+        ),
     };
     (cfg, layers)
 }
@@ -178,13 +217,13 @@ impl ConfigManager {
             watch_desc,
         }
     }
-    pub fn load_config(&self, width: u16) -> (Config, [FunctionLayer; 2]) {
+    pub fn load_config(&self, width: u16) -> (Config, Vec<FunctionLayer>) {
         load_config(width)
     }
     pub fn update_config(
         &mut self,
         cfg: &mut Config,
-        layers: &mut [FunctionLayer; 2],
+        layers: &mut Vec<FunctionLayer>,
         width: u16,
     ) -> bool {
         if self.watch_desc.is_none() {
@@ -197,7 +236,13 @@ impl ConfigManager {
         }
     }
     #[cold]
-    fn handle_events(&mut self, cfg: &mut Config, layers: &mut [FunctionLayer; 2], width: u16, evts: Result<Vec<InotifyEvent>, Errno>) -> bool {
+    fn handle_events(
+        &mut self,
+        cfg: &mut Config,
+        layers: &mut Vec<FunctionLayer>,
+        width: u16,
+        evts: Result<Vec<InotifyEvent>, Errno>,
+    ) -> bool {
         let mut ret = false;
         for evt in evts.unwrap() {
             if Some(evt.wd) != self.watch_desc {

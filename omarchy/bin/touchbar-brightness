@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+
+target=${1:-}
+direction=${2:-}
+
+case "$target:$direction" in
+  display:up)
+    device=gmux_backlight
+    brightnessctl -d "$device" set +10% >/dev/null
+    icon=brightness
+    ;;
+  display:down)
+    device=gmux_backlight
+    brightnessctl -d "$device" set 10%- >/dev/null
+    icon=brightness
+    ;;
+  keyboard:up)
+    device=:white:kbd_backlight
+    brightnessctl -d "$device" set +10% >/dev/null
+    icon=keyboard
+    ;;
+  keyboard:down)
+    device=:white:kbd_backlight
+    brightnessctl -d "$device" set 10%- >/dev/null
+    icon=keyboard
+    ;;
+  *)
+    printf 'Usage: %s {display|keyboard} {up|down}\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
+percentage=$(brightnessctl -d "$device" -m | cut -d, -f4 | tr -d '%')
+omarchy-osd -i "$icon" -p "$percentage"

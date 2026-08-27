@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync the Omarchy-themed Touch Bar configuration
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/omarchy-touchbar-sync
+ExecStartPost=/usr/bin/systemctl try-restart tiny-dfr.service

@@ -1,0 +1,101 @@
+#!/bin/bash
+set -euo pipefail
+
+theme_dir="@HOME@/.local/state/omarchy/current/theme"
+palette="$theme_dir/colors.toml"
+output_dir="@HOME@/.config/omarchy/touchbar/build"
+lucide_dir="@HOME@/.config/omarchy/touchbar/lucide"
+simple_dir="@HOME@/.config/omarchy/touchbar/simple-icons"
+
+read_color() {
+  local key="$1"
+  local fallback="$2"
+  local value
+
+  value=$(awk -F= -v wanted="$key" '
+    $1 ~ "^[[:space:]]*" wanted "[[:space:]]*$" {
+      value=$2
+      gsub(/[[:space:]\"\047]/, "", value)
+      print value
+      exit
+    }
+  ' "$palette" 2>/dev/null || true)
+  printf '%s' "${value:-$fallback}"
+}
+
+foreground=$(read_color foreground '#f5f5f5')
+background=$(read_color background '#111111')
+accent=$(read_color accent '#7aa2f7')
+active=$(read_color red '#f7768e')
+font_name=$(omarchy font current 2>/dev/null || true)
+font_name=${font_name:-Liberation Mono}
+
+mkdir -p "$output_dir"
+
+write_lucide() {
+  local source="$1"
+  local name="$2"
+  local color="$3"
+  sed \
+    -e "s/currentColor/$color/g" \
+    -e 's/stroke-width="2"/stroke-width="2.35"/' \
+    "$lucide_dir/$source.svg" > "$output_dir/$name.svg"
+}
+
+write_simple() {
+  local source="$1"
+  local name="$2"
+  local color="$3"
+  sed "s|<svg |<svg fill=\"$color\" |" \
+    "$simple_dir/$source.svg" > "$output_dir/$name.svg"
+}
+
+write_keyboard() {
+  local source=keyboard
+  local name="$1"
+  local mark="$2"
+  sed \
+    -e "s/currentColor/$foreground/g" \
+    -e 's/stroke-width="2"/stroke-width="2.35"/' \
+    -e "s|</svg>|<circle cx=\"19\" cy=\"19\" r=\"4\" fill=\"$background\"/><path d=\"M17 19h4$mark\" stroke=\"$accent\" stroke-width=\"2.35\" stroke-linecap=\"round\"/></svg>|" \
+    "$lucide_dir/$source.svg" > "$output_dir/$name.svg"
+}
+
+write_lucide menu menu "$accent"
+write_lucide layout-grid apps-menu "$accent"
+write_lucide square-terminal terminal "$foreground"
+write_lucide audio-waveform dictate "$active"
+write_lucide scan-line screenshot "$foreground"
+write_lucide sun-dim brightness-low "$foreground"
+write_lucide sun brightness-high "$foreground"
+write_keyboard keyboard-low ''
+write_keyboard keyboard-high 'm-2 0 2-2m-2 2 2 2'
+write_lucide skip-back fast_rewind "$foreground"
+write_lucide play play_pause "$accent"
+write_lucide skip-forward fast_forward "$foreground"
+write_lucide volume-1 volume_down "$foreground"
+write_lucide volume-x volume_off "$foreground"
+write_lucide volume-2 volume_up "$foreground"
+
+# App launcher layer
+write_lucide arrow-left app-back "$accent"
+write_simple zenbrowser app-zen "$foreground"
+write_lucide bot app-herdr "$foreground"
+write_lucide chart-candlestick app-tradewasm "$foreground"
+write_simple youtube app-youtube-music "$accent"
+write_simple youtube app-youtube "$foreground"
+write_simple x app-x "$foreground"
+write_simple claude app-claude "$foreground"
+write_simple openai app-codex "$foreground"
+write_simple googlegemini app-gemini "$foreground"
+write_simple gmail app-gmail "$foreground"
+write_lucide folder app-files "$foreground"
+
+sed \
+  -e "s|@FONT@|$font_name|g" \
+  -e "s|@BACKGROUND@|$background|g" \
+  -e "s|@FOREGROUND@|$foreground|g" \
+  @HOME@/.config/omarchy/touchbar/config.template.toml \
+  > "$output_dir/config.toml"
+
+touch "$output_dir/.ready"

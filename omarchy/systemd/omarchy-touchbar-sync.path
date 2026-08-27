@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch the generated Omarchy Touch Bar theme
+
+[Path]
+PathChanged=@HOME@/.config/omarchy/touchbar/build/.ready
+Unit=omarchy-touchbar-sync.service
+
+[Install]
+WantedBy=multi-user.target
