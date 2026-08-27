@@ -54,6 +54,7 @@ use display::DrmBackend;
 use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 
 const BUTTON_SPACING_PX: i32 = 8;
+const EDGE_INSET_PX: f64 = 24.0;
 const BUTTON_COLOR_INACTIVE: f64 = 0.200;
 const BUTTON_COLOR_ACTIVE: f64 = 0.400;
 const DEFAULT_ICON_SIZE: i32 = 48;
@@ -70,6 +71,21 @@ struct BatteryImages {
     plain: Vec<Handle>,
     charging: Vec<Handle>,
     bolt: Handle,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MediaState {
+    Disabled,
+    Paused,
+    Playing,
+}
+
+struct MediaImages {
+    disabled: Handle,
+    paused: Handle,
+    playing: Handle,
+    status_path: String,
+    state: MediaState,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -94,6 +110,7 @@ enum ButtonImage {
     Bitmap(ImageSurface),
     Time(Vec<ChronoItem<'static>>, Locale),
     Battery(String, BatteryIconMode, BatteryImages),
+    Media(MediaImages),
     Spacer,
 }
 
@@ -252,11 +269,33 @@ fn get_battery_state(battery: &str) -> (u32, BatteryState) {
     (capacity, status)
 }
 
+fn get_media_state(status_path: &str) -> MediaState {
+    match fs::read_to_string(status_path).as_deref().map(str::trim) {
+        Ok("playing") => MediaState::Playing,
+        Ok("paused") => MediaState::Paused,
+        _ => MediaState::Disabled,
+    }
+}
+
 impl Button {
     fn with_config(cfg: ButtonConfig) -> Button {
         let layer = cfg.layer;
         let mut button = if let Some(text) = cfg.text {
             Button::new_text(text, cfg.action)
+        } else if let Some(status_path) = cfg.media_status {
+            Button::new_media(
+                cfg.icon.as_deref().expect("media button requires Icon"),
+                cfg.paused_icon
+                    .as_deref()
+                    .expect("media button requires PausedIcon"),
+                cfg.playing_icon
+                    .as_deref()
+                    .expect("media button requires PlayingIcon"),
+                status_path,
+                cfg.action,
+                cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
+                cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE),
+            )
         } else if let Some(icon) = cfg.icon {
             Button::new_icon(
                 &icon,
@@ -313,6 +352,40 @@ impl Button {
         Button {
             action,
             image,
+            icon_width: icon_width as f64,
+            icon_height: icon_height as f64,
+            active: false,
+            changed: false,
+            layer: None,
+        }
+    }
+    fn load_svg_icon(icon: &str, icon_width: i32, icon_height: i32) -> Handle {
+        match try_load_image(icon, None::<&str>, icon_width, icon_height)
+            .expect("failed to load media icon")
+        {
+            ButtonImage::Svg(handle) => handle,
+            _ => panic!("media state icons must be SVG files"),
+        }
+    }
+    fn new_media(
+        disabled_icon: &str,
+        paused_icon: &str,
+        playing_icon: &str,
+        status_path: String,
+        action: Vec<Key>,
+        icon_width: i32,
+        icon_height: i32,
+    ) -> Button {
+        let state = get_media_state(&status_path);
+        Button {
+            action,
+            image: ButtonImage::Media(MediaImages {
+                disabled: Self::load_svg_icon(disabled_icon, icon_width, icon_height),
+                paused: Self::load_svg_icon(paused_icon, icon_width, icon_height),
+                playing: Self::load_svg_icon(playing_icon, icon_width, icon_height),
+                status_path,
+                state,
+            }),
             icon_width: icon_width as f64,
             icon_height: icon_height as f64,
             active: false,
@@ -423,8 +496,27 @@ impl Button {
                     _ => false,
                 }
             }),
+            ButtonImage::Media(_) => true,
             _ => false,
         }
+    }
+    fn refresh_media_state(&mut self) {
+        if let ButtonImage::Media(media) = &mut self.image {
+            let state = get_media_state(&media.status_path);
+            if state != media.state {
+                media.state = state;
+                self.changed = true;
+            }
+        }
+    }
+    fn is_disabled(&self) -> bool {
+        matches!(
+            self.image,
+            ButtonImage::Media(MediaImages {
+                state: MediaState::Disabled,
+                ..
+            })
+        )
     }
     fn render(
         &self,
@@ -458,6 +550,18 @@ impl Button {
                 c.set_source_surface(surf, x, y).unwrap();
                 c.rectangle(x, y, self.icon_width, self.icon_height);
                 c.fill().unwrap();
+            }
+            ButtonImage::Media(media) => {
+                let svg = match media.state {
+                    MediaState::Disabled => &media.disabled,
+                    MediaState::Paused => &media.paused,
+                    MediaState::Playing => &media.playing,
+                };
+                let x =
+                    button_left_edge + (button_width as f64 / 2.0 - self.icon_width / 2.0).round();
+                let y = y_shift + ((height as f64 - self.icon_height) / 2.0).round();
+                svg.render_document(c, &Rectangle::new(x, y, self.icon_width, self.icon_height))
+                    .unwrap();
             }
             ButtonImage::Time(format, locale) => {
                 let current_time = Local::now();
@@ -538,6 +642,9 @@ impl Button {
     where
         F: AsRawFd,
     {
+        if active && self.is_disabled() {
+            return;
+        }
         if self.active != active {
             self.active = active;
             self.changed = true;
@@ -563,6 +670,7 @@ impl Button {
 pub struct FunctionLayer {
     displays_time: bool,
     displays_battery: bool,
+    displays_media: bool,
     buttons: Vec<(usize, Button)>,
     virtual_button_count: usize,
     faster_refresh: bool,
@@ -577,6 +685,7 @@ impl FunctionLayer {
         let mut virtual_button_count = 0;
         let displays_time = cfg.iter().any(|cfg| cfg.time.is_some());
         let displays_battery = cfg.iter().any(|cfg| cfg.battery.is_some());
+        let displays_media = cfg.iter().any(|cfg| cfg.media_status.is_some());
         let buttons = cfg
             .into_iter()
             .scan(&mut virtual_button_count, |state, cfg| {
@@ -594,6 +703,7 @@ impl FunctionLayer {
         FunctionLayer {
             displays_time,
             displays_battery,
+            displays_media,
             buttons,
             virtual_button_count,
             faster_refresh,
@@ -748,8 +858,8 @@ impl FunctionLayer {
             {
                 let slot_center = (start + end) as f64 / 2.0;
                 let position = (slot_center - 0.5) / (self.virtual_button_count as f64 - 1.0);
-                let left_center = 4.0 + first_icon_width / 2.0;
-                let right_center = width as f64 - 4.0 - last_icon_width / 2.0;
+                let left_center = EDGE_INSET_PX + first_icon_width / 2.0;
+                let right_center = width as f64 - EDGE_INSET_PX - last_icon_width / 2.0;
                 let icon_center = left_center + position * (right_center - left_center);
                 icon_center - button_width / 2.0
             } else {
@@ -1003,6 +1113,12 @@ fn real_main(drm: &mut DrmBackend) {
                 if let ButtonImage::Battery(_, _, _) = button.1.image {
                     button.1.changed = true;
                 }
+            }
+        }
+        if layers[active_layer].displays_media {
+            next_timeout_ms = min(next_timeout_ms, 1000);
+            for button in &mut layers[active_layer].buttons {
+                button.1.refresh_media_state();
             }
         }
 

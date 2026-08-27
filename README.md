@@ -47,7 +47,7 @@ brightnessctl --list
 
 ## Dependencies
 
-Rust, Cairo, libinput, FreeType, Fontconfig, librsvg 2.59+, udev, brightnessctl,
+Rust, Cairo, libinput, FreeType, Fontconfig, librsvg 2.59+, udev, brightnessctl, playerctl,
 and a kernel with uinput and Apple T2 Touch Bar support.
 
 ## Credits and licenses

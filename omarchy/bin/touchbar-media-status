@@ -1,0 +1,28 @@
+#!/bin/bash
+set -euo pipefail
+
+status_file="/dev/shm/omarchy-touchbar-media-status-$(id -u)"
+last_status=
+
+write_status() {
+  local status="$1"
+  local temporary="$status_file.$$"
+
+  [[ "$status" == "$last_status" ]] && return
+  printf '%s\n' "$status" > "$temporary"
+  chmod 0644 "$temporary"
+  mv -f "$temporary" "$status_file"
+  last_status="$status"
+}
+
+while true; do
+  statuses=$(playerctl --all-players status 2>/dev/null || true)
+  if grep -qx 'Playing' <<< "$statuses"; then
+    write_status playing
+  elif grep -qx 'Paused' <<< "$statuses"; then
+    write_status paused
+  else
+    write_status disabled
+  fi
+  sleep 1
+done

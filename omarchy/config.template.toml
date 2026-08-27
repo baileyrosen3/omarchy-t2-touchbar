@@ -27,7 +27,7 @@ PrimaryLayerKeys = [
 
   # Media transport
   { Icon = "fast_rewind",     Action = "PreviousSong", IconWidth = 40, IconHeight = 40 },
-  { Icon = "play_pause",      Action = "PlayPause", IconWidth = 40, IconHeight = 40 },
+  { Icon = "media-play-disabled", PausedIcon = "media-play", PlayingIcon = "media-pause", MediaStatus = "/dev/shm/omarchy-touchbar-media-status-@UID@", Action = "PlayPause", IconWidth = 40, IconHeight = 40 },
   { Icon = "fast_forward",    Action = "NextSong", IconWidth = 40, IconHeight = 40 },
 
   { Stretch = 1 },

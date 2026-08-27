@@ -61,28 +61,30 @@ write_keyboard() {
     "$lucide_dir/$source.svg" > "$output_dir/$name.svg"
 }
 
-write_lucide menu menu "$accent"
-write_lucide layout-grid apps-menu "$accent"
+write_lucide menu menu "$foreground"
+write_lucide layout-grid apps-menu "$foreground"
 write_lucide square-terminal terminal "$foreground"
-write_lucide audio-waveform dictate "$active"
+write_lucide audio-waveform dictate "$foreground"
 write_lucide scan-line screenshot "$foreground"
 write_lucide sun-dim brightness-low "$foreground"
 write_lucide sun brightness-high "$foreground"
 write_keyboard keyboard-low ''
 write_keyboard keyboard-high 'm-2 0 2-2m-2 2 2 2'
 write_lucide skip-back fast_rewind "$foreground"
-write_lucide play play_pause "$accent"
+write_lucide play media-play-disabled "$accent"
+write_lucide play media-play "$foreground"
+write_lucide pause media-pause "$foreground"
 write_lucide skip-forward fast_forward "$foreground"
 write_lucide volume-1 volume_down "$foreground"
 write_lucide volume-x volume_off "$foreground"
 write_lucide volume-2 volume_up "$foreground"
 
 # App launcher layer
-write_lucide arrow-left app-back "$accent"
+write_lucide arrow-left app-back "$foreground"
 write_simple zenbrowser app-zen "$foreground"
 write_lucide bot app-herdr "$foreground"
 write_lucide waves-horizontal app-riptide "$foreground"
-write_simple youtube app-youtube-music "$accent"
+write_simple youtube app-youtube-music "$foreground"
 write_simple youtube app-youtube "$foreground"
 write_simple x app-x "$foreground"
 write_simple claude app-claude "$foreground"
