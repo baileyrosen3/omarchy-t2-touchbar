@@ -20,7 +20,7 @@ names and app commands before using it on a different T2 model.
 The main layer contains Apps, Omarchy, Terminal, Screenshot, display and keyboard
 brightness, media transport, volume, and voice recording. The Apps button opens:
 
-Back · Zen · Herdr · TradeWasm · YouTube Music · YouTube · X.com · Claude ·
+Back · Zen · Herdr · Riptide · YouTube Music · YouTube · X.com · Claude ·
 Codex · Gemini · Gmail · Files
 
 Holding `Fn` exposes the standard F1–F12 layer.

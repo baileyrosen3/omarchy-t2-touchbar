@@ -62,7 +62,7 @@ AppLayerKeys = [
   { Icon = "app-back",          Layer = 0, IconWidth = 34, IconHeight = 34 },
   { Icon = "app-zen",           Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F1" ], IconWidth = 34, IconHeight = 34 },
   { Icon = "app-herdr",         Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F2" ], IconWidth = 34, IconHeight = 34 },
-  { Icon = "app-tradewasm",     Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F3" ], IconWidth = 34, IconHeight = 34 },
+  { Icon = "app-riptide",       Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F3" ], IconWidth = 34, IconHeight = 34 },
   { Icon = "app-youtube-music", Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F4" ], IconWidth = 34, IconHeight = 34 },
   { Icon = "app-youtube",       Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F5" ], IconWidth = 34, IconHeight = 34 },
   { Icon = "app-x",             Action = [ "LeftMeta", "LeftCtrl", "LeftShift", "F6" ], IconWidth = 34, IconHeight = 34 },

@@ -10,7 +10,7 @@ o.bind("CTRL + ALT + SHIFT + F8", "Touch Bar: Keyboard brightness up", "~/.local
 
 o.bind("SUPER + CTRL + SHIFT + F1", "Touch Bar app: Zen", "uwsm-app -- zen-browser")
 o.bind("SUPER + CTRL + SHIFT + F2", "Touch Bar app: Herdr", "uwsm-app -- xdg-terminal-exec -- herdr")
-o.bind("SUPER + CTRL + SHIFT + F3", "Touch Bar app: TradeWasm", "uwsm-app -- tradewasm")
+o.bind("SUPER + CTRL + SHIFT + F3", "Touch Bar app: Riptide", "uwsm-app -- riptide")
 o.bind("SUPER + CTRL + SHIFT + F4", "Touch Bar app: YouTube Music", "omarchy-launch-or-focus-webapp 'YouTube Music' 'https://music.youtube.com/'")
 o.bind("SUPER + CTRL + SHIFT + F5", "Touch Bar app: YouTube", "omarchy-launch-webapp 'https://youtube.com/'")
 o.bind("SUPER + CTRL + SHIFT + F6", "Touch Bar app: X.com", "omarchy-launch-webapp 'https://x.com/'")
