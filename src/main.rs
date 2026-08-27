@@ -86,6 +86,7 @@ struct MediaImages {
     playing: Handle,
     status_path: String,
     state: MediaState,
+    optimistic_until: Option<Instant>,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -385,6 +386,7 @@ impl Button {
                 playing: Self::load_svg_icon(playing_icon, icon_width, icon_height),
                 status_path,
                 state,
+                optimistic_until: None,
             }),
             icon_width: icon_width as f64,
             icon_height: icon_height as f64,
@@ -503,6 +505,15 @@ impl Button {
     fn refresh_media_state(&mut self) {
         if let ButtonImage::Media(media) = &mut self.image {
             let state = get_media_state(&media.status_path);
+            if let Some(until) = media.optimistic_until {
+                if state == media.state {
+                    media.optimistic_until = None;
+                } else if Instant::now() < until {
+                    return;
+                } else {
+                    media.optimistic_until = None;
+                }
+            }
             if state != media.state {
                 media.state = state;
                 self.changed = true;
@@ -646,6 +657,16 @@ impl Button {
             return;
         }
         if self.active != active {
+            if active {
+                if let ButtonImage::Media(media) = &mut self.image {
+                    media.state = match media.state {
+                        MediaState::Paused => MediaState::Playing,
+                        MediaState::Playing => MediaState::Paused,
+                        MediaState::Disabled => MediaState::Disabled,
+                    };
+                    media.optimistic_until = Some(Instant::now() + Duration::from_secs(2));
+                }
+            }
             self.active = active;
             self.changed = true;
 
