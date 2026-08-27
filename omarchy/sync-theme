@@ -61,15 +61,15 @@ write_lucide() {
 write_voice() {
   local name="$1"
   local glow="$2"
-  local filter=''
+  local glow_path=''
   if [[ "$glow" == true ]]; then
-    filter=' filter="url(#voiceGlow)"'
+    glow_path="  <path d=\"M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2\" stroke=\"$voice_purple\" stroke-opacity=\"0.28\" stroke-width=\"6.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n"
   fi
   sed \
     -e 's/currentColor/url(#voiceGradient)/g' \
     -e 's/stroke-width="2"/stroke-width="2.35"/' \
-    -e "s|<path |<path$filter |" \
-    -e "s|</svg>|<defs><linearGradient id=\"voiceGradient\" x1=\"2\" y1=\"4\" x2=\"22\" y2=\"20\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"$voice_blue\"/><stop offset=\"1\" stop-color=\"$voice_purple\"/></linearGradient><filter id=\"voiceGlow\" x=\"-70%\" y=\"-70%\" width=\"240%\" height=\"240%\"><feGaussianBlur stdDeviation=\"1.6\" result=\"blur\"/><feFlood flood-color=\"$voice_purple\" flood-opacity=\"0.95\" result=\"color\"/><feComposite in=\"color\" in2=\"blur\" operator=\"in\" result=\"glow\"/><feMerge><feMergeNode in=\"glow\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs></svg>|" \
+    -e "s|  <path |$glow_path  <path |" \
+    -e "s|</svg>|<defs><linearGradient id=\"voiceGradient\" x1=\"2\" y1=\"4\" x2=\"22\" y2=\"20\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"$voice_blue\"/><stop offset=\"1\" stop-color=\"$voice_purple\"/></linearGradient></defs></svg>|" \
     "$lucide_dir/audio-waveform.svg" > "$output_dir/$name.svg"
 }
 
