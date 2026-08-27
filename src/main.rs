@@ -54,7 +54,8 @@ use display::DrmBackend;
 use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 
 const BUTTON_SPACING_PX: i32 = 8;
-const CARD_EDGE_INSET_PX: f64 = 2.0;
+const CARD_HORIZONTAL_INSET_PX: f64 = 8.0;
+const CARD_VERTICAL_INSET_PX: f64 = 4.0;
 const OUTLINE_WIDTH_RATIO: f64 = 1.5;
 const OUTLINE_IDLE_ALPHA: f64 = 0.62;
 const OUTLINE_ACTIVE_ALPHA: f64 = 0.96;
@@ -850,7 +851,8 @@ impl FunctionLayer {
         c.set_font_size(32.0);
 
         let button_count = self.buttons.len();
-        let card_width = height as f64 * OUTLINE_WIDTH_RATIO;
+        let card_height = height as f64 - CARD_VERTICAL_INSET_PX * 2.0;
+        let card_width = card_height * OUTLINE_WIDTH_RATIO;
         for i in 0..button_count {
             let end = if i + 1 < self.buttons.len() {
                 self.buttons[i + 1].0
@@ -888,10 +890,10 @@ impl FunctionLayer {
                 let slot_center = (start + end) as f64 / 2.0;
                 let position = (slot_center - 0.5) / (self.virtual_button_count as f64 - 1.0);
                 // Align the cards themselves, not merely their icon artwork, to
-                // the bar. This leaves a consistent 2 px breathing room at both
-                // physical ends on every layer.
-                let left_center = CARD_EDGE_INSET_PX + card_width / 2.0;
-                let right_center = width as f64 - CARD_EDGE_INSET_PX - card_width / 2.0;
+                // the bar. This leaves 8 px horizontally and 4 px vertically on
+                // every layer.
+                let left_center = CARD_HORIZONTAL_INSET_PX + card_width / 2.0;
+                let right_center = width as f64 - CARD_HORIZONTAL_INSET_PX - card_width / 2.0;
                 let icon_center = left_center + position * (right_center - left_center);
                 icon_center - button_width / 2.0
             } else {
@@ -900,9 +902,8 @@ impl FunctionLayer {
             if !matches!(button.image, ButtonImage::Spacer)
                 && (config.show_button_outlines || button.active)
             {
-                // A flush, square card makes the bar read as one clean grid. Its
-                // height:width ratio is 1:1.5, while its top and bottom meet the
-                // physical edges of the Touch Bar.
+                // Each square-cornered card has a 1:1.5 height:width ratio and a
+                // small, consistent inset from the physical Touch Bar edges.
                 let icon_center = render_left_edge + button_width / 2.0;
                 let card_left = icon_center - card_width / 2.0;
                 let (surface_alpha, outline_alpha, outline_width) = if button.active {
@@ -919,7 +920,7 @@ impl FunctionLayer {
                     config.foreground_color.2,
                     surface_alpha,
                 );
-                c.rectangle(card_left, 0.0, card_width, height as f64);
+                c.rectangle(card_left, CARD_VERTICAL_INSET_PX, card_width, card_height);
                 c.fill().unwrap();
 
                 c.set_source_rgba(
@@ -929,7 +930,7 @@ impl FunctionLayer {
                     outline_alpha,
                 );
                 c.set_line_width(outline_width);
-                c.rectangle(card_left, 0.0, card_width, height as f64);
+                c.rectangle(card_left, CARD_VERTICAL_INSET_PX, card_width, card_height);
                 c.stroke().unwrap();
             }
             c.set_source_rgb(
