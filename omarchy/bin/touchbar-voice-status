@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+source_file="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/voxtype/state"
+status_file="/dev/shm/omarchy-touchbar-voice-status-$(id -u)"
+last_status=
+
+write_status() {
+  local status="$1"
+  local temporary="$status_file.$$"
+
+  [[ "$status" == "$last_status" ]] && return
+  printf '%s\n' "$status" > "$temporary"
+  chmod 0644 "$temporary"
+  mv -f "$temporary" "$status_file"
+  last_status="$status"
+}
+
+while true; do
+  if [[ -r "$source_file" ]]; then
+    state=$(<"$source_file")
+  else
+    state=
+  fi
+  case "$state" in
+    recording|transcribing) write_status "$state" ;;
+    *) write_status idle ;;
+  esac
+  sleep 0.1
+done

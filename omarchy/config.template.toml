@@ -40,7 +40,7 @@ PrimaryLayerKeys = [
   { Stretch = 1 },
 
   # Voice recording
-  { Icon = "dictate",         Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F3" ], IconWidth = 40, IconHeight = 40 }
+  { Icon = "dictate-idle", ActiveIcon = "dictate-active", VoiceStatus = "/dev/shm/omarchy-touchbar-voice-status-@UID@", Action = [ "LeftCtrl", "LeftAlt", "LeftShift", "F3" ], IconWidth = 40, IconHeight = 40 }
 ]
 
 MediaLayerKeys = [

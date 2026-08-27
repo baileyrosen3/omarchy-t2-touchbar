@@ -99,6 +99,8 @@ pub struct ButtonConfig {
     pub media_status: Option<String>,
     pub paused_icon: Option<String>,
     pub playing_icon: Option<String>,
+    pub voice_status: Option<String>,
+    pub active_icon: Option<String>,
     pub locale: Option<String>,
     #[serde(deserialize_with = "array_or_single", default)]
     pub action: Vec<Key>,
@@ -164,6 +166,8 @@ fn load_config(width: u16) -> (Config, Vec<FunctionLayer>) {
                     media_status: None,
                     paused_icon: None,
                     playing_icon: None,
+                    voice_status: None,
+                    active_icon: None,
                     icon_width: None,
                     icon_height: None,
                     layer: None,

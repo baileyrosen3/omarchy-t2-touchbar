@@ -13,9 +13,12 @@ sed -i "s|@HOME@|$HOME|g" "$touchbar_dir/sync-theme"
 sed -i "s|@UID@|$(id -u)|g" "$touchbar_dir/config.template.toml"
 install -m 0755 "$repo_dir/omarchy/bin/touchbar-brightness" "$HOME/.local/bin/"
 install -m 0755 "$repo_dir/omarchy/bin/touchbar-media-status" "$HOME/.local/bin/"
+install -m 0755 "$repo_dir/omarchy/bin/touchbar-voice-status" "$HOME/.local/bin/"
 
 install -d "$HOME/.config/systemd/user"
 install -m 0644 "$repo_dir/omarchy/systemd/user/omarchy-touchbar-media-status.service" \
+  "$HOME/.config/systemd/user/"
+install -m 0644 "$repo_dir/omarchy/systemd/user/omarchy-touchbar-voice-status.service" \
   "$HOME/.config/systemd/user/"
 
 install -d "$HOME/.config/omarchy/hooks/theme-set.d" "$HOME/.config/omarchy/hooks/font-set.d"
@@ -43,5 +46,6 @@ sudo systemctl enable --now omarchy-touchbar-sync.path tiny-dfr.service
 sudo systemctl start omarchy-touchbar-sync.service
 systemctl --user daemon-reload
 systemctl --user enable --now omarchy-touchbar-media-status.service
+systemctl --user enable --now omarchy-touchbar-voice-status.service
 
 printf '\nInstall complete. Add the bindings from:\n  %s\n' "$repo_dir/omarchy/bindings.lua"

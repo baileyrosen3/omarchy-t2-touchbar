@@ -89,6 +89,14 @@ struct MediaImages {
     optimistic_until: Option<Instant>,
 }
 
+struct VoiceImages {
+    idle: Handle,
+    active: Handle,
+    status_path: String,
+    recording: bool,
+    optimistic_until: Option<Instant>,
+}
+
 #[derive(Eq, PartialEq, Copy, Clone)]
 enum BatteryIconMode {
     Percentage,
@@ -112,6 +120,7 @@ enum ButtonImage {
     Time(Vec<ChronoItem<'static>>, Locale),
     Battery(String, BatteryIconMode, BatteryImages),
     Media(MediaImages),
+    Voice(VoiceImages),
     Spacer,
 }
 
@@ -278,6 +287,13 @@ fn get_media_state(status_path: &str) -> MediaState {
     }
 }
 
+fn get_voice_recording(status_path: &str) -> bool {
+    matches!(
+        fs::read_to_string(status_path).as_deref().map(str::trim),
+        Ok("recording" | "transcribing")
+    )
+}
+
 impl Button {
     fn with_config(cfg: ButtonConfig) -> Button {
         let layer = cfg.layer;
@@ -292,6 +308,17 @@ impl Button {
                 cfg.playing_icon
                     .as_deref()
                     .expect("media button requires PlayingIcon"),
+                status_path,
+                cfg.action,
+                cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
+                cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE),
+            )
+        } else if let Some(status_path) = cfg.voice_status {
+            Button::new_voice(
+                cfg.icon.as_deref().expect("voice button requires Icon"),
+                cfg.active_icon
+                    .as_deref()
+                    .expect("voice button requires ActiveIcon"),
                 status_path,
                 cfg.action,
                 cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
@@ -386,6 +413,31 @@ impl Button {
                 playing: Self::load_svg_icon(playing_icon, icon_width, icon_height),
                 status_path,
                 state,
+                optimistic_until: None,
+            }),
+            icon_width: icon_width as f64,
+            icon_height: icon_height as f64,
+            active: false,
+            changed: false,
+            layer: None,
+        }
+    }
+    fn new_voice(
+        idle_icon: &str,
+        active_icon: &str,
+        status_path: String,
+        action: Vec<Key>,
+        icon_width: i32,
+        icon_height: i32,
+    ) -> Button {
+        let recording = get_voice_recording(&status_path);
+        Button {
+            action,
+            image: ButtonImage::Voice(VoiceImages {
+                idle: Self::load_svg_icon(idle_icon, icon_width, icon_height),
+                active: Self::load_svg_icon(active_icon, icon_width, icon_height),
+                status_path,
+                recording,
                 optimistic_until: None,
             }),
             icon_width: icon_width as f64,
@@ -498,7 +550,7 @@ impl Button {
                     _ => false,
                 }
             }),
-            ButtonImage::Media(_) => true,
+            ButtonImage::Media(_) | ButtonImage::Voice(_) => true,
             _ => false,
         }
     }
@@ -528,6 +580,24 @@ impl Button {
                 ..
             })
         )
+    }
+    fn refresh_voice_state(&mut self) {
+        if let ButtonImage::Voice(voice) = &mut self.image {
+            let recording = get_voice_recording(&voice.status_path);
+            if let Some(until) = voice.optimistic_until {
+                if recording == voice.recording {
+                    voice.optimistic_until = None;
+                } else if Instant::now() < until {
+                    return;
+                } else {
+                    voice.optimistic_until = None;
+                }
+            }
+            if recording != voice.recording {
+                voice.recording = recording;
+                self.changed = true;
+            }
+        }
     }
     fn render(
         &self,
@@ -567,6 +637,18 @@ impl Button {
                     MediaState::Disabled => &media.disabled,
                     MediaState::Paused => &media.paused,
                     MediaState::Playing => &media.playing,
+                };
+                let x =
+                    button_left_edge + (button_width as f64 / 2.0 - self.icon_width / 2.0).round();
+                let y = y_shift + ((height as f64 - self.icon_height) / 2.0).round();
+                svg.render_document(c, &Rectangle::new(x, y, self.icon_width, self.icon_height))
+                    .unwrap();
+            }
+            ButtonImage::Voice(voice) => {
+                let svg = if voice.recording {
+                    &voice.active
+                } else {
+                    &voice.idle
                 };
                 let x =
                     button_left_edge + (button_width as f64 / 2.0 - self.icon_width / 2.0).round();
@@ -666,6 +748,10 @@ impl Button {
                     };
                     media.optimistic_until = Some(Instant::now() + Duration::from_secs(2));
                 }
+                if let ButtonImage::Voice(voice) = &mut self.image {
+                    voice.recording = true;
+                    voice.optimistic_until = Some(Instant::now() + Duration::from_secs(2));
+                }
             }
             self.active = active;
             self.changed = true;
@@ -692,6 +778,7 @@ pub struct FunctionLayer {
     displays_time: bool,
     displays_battery: bool,
     displays_media: bool,
+    displays_voice: bool,
     buttons: Vec<(usize, Button)>,
     virtual_button_count: usize,
     faster_refresh: bool,
@@ -707,6 +794,7 @@ impl FunctionLayer {
         let displays_time = cfg.iter().any(|cfg| cfg.time.is_some());
         let displays_battery = cfg.iter().any(|cfg| cfg.battery.is_some());
         let displays_media = cfg.iter().any(|cfg| cfg.media_status.is_some());
+        let displays_voice = cfg.iter().any(|cfg| cfg.voice_status.is_some());
         let buttons = cfg
             .into_iter()
             .scan(&mut virtual_button_count, |state, cfg| {
@@ -725,6 +813,7 @@ impl FunctionLayer {
             displays_time,
             displays_battery,
             displays_media,
+            displays_voice,
             buttons,
             virtual_button_count,
             faster_refresh,
@@ -1140,6 +1229,12 @@ fn real_main(drm: &mut DrmBackend) {
             next_timeout_ms = min(next_timeout_ms, 1000);
             for button in &mut layers[active_layer].buttons {
                 button.1.refresh_media_state();
+            }
+        }
+        if layers[active_layer].displays_voice {
+            next_timeout_ms = min(next_timeout_ms, 100);
+            for button in &mut layers[active_layer].buttons {
+                button.1.refresh_voice_state();
             }
         }
 

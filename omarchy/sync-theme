@@ -26,7 +26,23 @@ read_color() {
 foreground=$(read_color foreground '#f5f5f5')
 background=$(read_color background '#111111')
 accent=$(read_color accent '#7aa2f7')
-active=$(read_color red '#f7768e')
+theme_mode=$(read_color mode dark)
+brand_zen='#F0DE8A'
+brand_herdr='#7C3AED'
+brand_riptide='#00AEEF'
+brand_youtube='#FF0000'
+brand_claude='#D97757'
+brand_codex='#FFFFFF'
+brand_gemini='#8E75B2'
+brand_gmail='#EA4335'
+brand_files='#3584E4'
+voice_blue='#4F8CFF'
+voice_purple='#A855F7'
+if [[ "$theme_mode" == "dark" ]]; then
+  brand_x='#FFFFFF'
+else
+  brand_x='#000000'
+fi
 font_name=$(omarchy font current 2>/dev/null || true)
 font_name=${font_name:-Liberation Mono}
 
@@ -40,6 +56,21 @@ write_lucide() {
     -e "s/currentColor/$color/g" \
     -e 's/stroke-width="2"/stroke-width="2.35"/' \
     "$lucide_dir/$source.svg" > "$output_dir/$name.svg"
+}
+
+write_voice() {
+  local name="$1"
+  local glow="$2"
+  local filter=''
+  if [[ "$glow" == true ]]; then
+    filter=' filter="url(#voiceGlow)"'
+  fi
+  sed \
+    -e 's/currentColor/url(#voiceGradient)/g' \
+    -e 's/stroke-width="2"/stroke-width="2.35"/' \
+    -e "s|<path |<path$filter |" \
+    -e "s|</svg>|<defs><linearGradient id=\"voiceGradient\" x1=\"2\" y1=\"4\" x2=\"22\" y2=\"20\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"$voice_blue\"/><stop offset=\"1\" stop-color=\"$voice_purple\"/></linearGradient><filter id=\"voiceGlow\" x=\"-70%\" y=\"-70%\" width=\"240%\" height=\"240%\"><feGaussianBlur stdDeviation=\"1.6\" result=\"blur\"/><feFlood flood-color=\"$voice_purple\" flood-opacity=\"0.95\" result=\"color\"/><feComposite in=\"color\" in2=\"blur\" operator=\"in\" result=\"glow\"/><feMerge><feMergeNode in=\"glow\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs></svg>|" \
+    "$lucide_dir/audio-waveform.svg" > "$output_dir/$name.svg"
 }
 
 write_simple() {
@@ -64,7 +95,8 @@ write_keyboard() {
 write_lucide menu menu "$foreground"
 write_lucide layout-grid apps-menu "$foreground"
 write_lucide square-terminal terminal "$foreground"
-write_lucide audio-waveform dictate "$foreground"
+write_voice dictate-idle false
+write_voice dictate-active true
 write_lucide scan-line screenshot "$foreground"
 write_lucide sun-dim brightness-low "$foreground"
 write_lucide sun brightness-high "$foreground"
@@ -81,17 +113,17 @@ write_lucide volume-2 volume_up "$foreground"
 
 # App launcher layer
 write_lucide arrow-left app-back "$foreground"
-write_simple zenbrowser app-zen "$foreground"
-write_lucide bot app-herdr "$foreground"
-write_lucide waves-horizontal app-riptide "$foreground"
-write_simple youtube app-youtube-music "$foreground"
-write_simple youtube app-youtube "$foreground"
-write_simple x app-x "$foreground"
-write_simple claude app-claude "$foreground"
-write_simple openai app-codex "$foreground"
-write_simple googlegemini app-gemini "$foreground"
-write_simple gmail app-gmail "$foreground"
-write_lucide folder app-files "$foreground"
+write_simple zenbrowser app-zen "$brand_zen"
+write_lucide bot app-herdr "$brand_herdr"
+write_lucide waves-horizontal app-riptide "$brand_riptide"
+write_simple youtubemusic app-youtube-music "$brand_youtube"
+write_simple youtube app-youtube "$brand_youtube"
+write_simple x app-x "$brand_x"
+write_simple claude app-claude "$brand_claude"
+write_simple openai app-codex "$brand_codex"
+write_simple googlegemini app-gemini "$brand_gemini"
+write_simple gmail app-gmail "$brand_gmail"
+write_lucide folder app-files "$brand_files"
 
 sed \
   -e "s|@FONT@|$font_name|g" \
