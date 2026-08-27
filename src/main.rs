@@ -56,6 +56,10 @@ use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 const BUTTON_SPACING_PX: i32 = 8;
 const EDGE_INSET_PX: f64 = 24.0;
 const OUTLINE_WIDTH_RATIO: f64 = 1.5;
+const OUTLINE_IDLE_ALPHA: f64 = 0.62;
+const OUTLINE_ACTIVE_ALPHA: f64 = 0.96;
+const SURFACE_IDLE_ALPHA: f64 = 0.075;
+const SURFACE_ACTIVE_ALPHA: f64 = 0.16;
 const DEFAULT_ICON_SIZE: i32 = 48;
 const TIMEOUT_MS: i32 = 10 * 1000;
 
@@ -912,14 +916,30 @@ impl FunctionLayer {
                 let card_width = height as f64 * OUTLINE_WIDTH_RATIO;
                 let icon_center = render_left_edge + button_width / 2.0;
                 let card_left = icon_center - card_width / 2.0;
-                let alpha = if button.active { 0.82 } else { 0.42 };
+                let (surface_alpha, outline_alpha, outline_width) = if button.active {
+                    (SURFACE_ACTIVE_ALPHA, OUTLINE_ACTIVE_ALPHA, 2.0)
+                } else {
+                    (SURFACE_IDLE_ALPHA, OUTLINE_IDLE_ALPHA, 1.5)
+                };
+
+                // The translucent surface adapts naturally to both light and dark
+                // Omarchy themes, avoiding the flat spreadsheet-grid look.
                 c.set_source_rgba(
                     config.foreground_color.0,
                     config.foreground_color.1,
                     config.foreground_color.2,
-                    alpha,
+                    surface_alpha,
                 );
-                c.set_line_width(if button.active { 2.0 } else { 1.0 });
+                c.rectangle(card_left, 0.0, card_width, height as f64);
+                c.fill().unwrap();
+
+                c.set_source_rgba(
+                    config.foreground_color.0,
+                    config.foreground_color.1,
+                    config.foreground_color.2,
+                    outline_alpha,
+                );
+                c.set_line_width(outline_width);
                 c.rectangle(card_left, 0.0, card_width, height as f64);
                 c.stroke().unwrap();
             }
