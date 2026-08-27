@@ -56,7 +56,9 @@ use pixel_shift::{PixelShiftManager, PIXEL_SHIFT_WIDTH_PX};
 const BUTTON_SPACING_PX: i32 = 8;
 const CARD_HORIZONTAL_INSET_PX: f64 = 8.0;
 const CARD_VERTICAL_INSET_PX: f64 = 4.0;
+const CARD_CORNER_RADIUS_PX: f64 = 8.0;
 const OUTLINE_WIDTH_RATIO: f64 = 1.5;
+const ICON_SCALE: f64 = 0.8;
 const OUTLINE_IDLE_ALPHA: f64 = 0.62;
 const OUTLINE_ACTIVE_ALPHA: f64 = 0.96;
 const SURFACE_IDLE_ALPHA: f64 = 0.075;
@@ -99,6 +101,43 @@ struct VoiceImages {
     status_path: String,
     recording: bool,
     optimistic_until: Option<Instant>,
+}
+
+fn rounded_rectangle(c: &Context, x: f64, y: f64, width: f64, height: f64, radius: f64) {
+    let radius = radius.min(width / 2.0).min(height / 2.0);
+    let right = x + width;
+    let bottom = y + height;
+
+    c.new_sub_path();
+    c.arc(
+        right - radius,
+        y + radius,
+        radius,
+        (-90.0f64).to_radians(),
+        0.0,
+    );
+    c.arc(
+        right - radius,
+        bottom - radius,
+        radius,
+        0.0,
+        90.0f64.to_radians(),
+    );
+    c.arc(
+        x + radius,
+        bottom - radius,
+        radius,
+        90.0f64.to_radians(),
+        180.0f64.to_radians(),
+    );
+    c.arc(
+        x + radius,
+        y + radius,
+        radius,
+        180.0f64.to_radians(),
+        270.0f64.to_radians(),
+    );
+    c.close_path();
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -301,6 +340,10 @@ fn get_voice_recording(status_path: &str) -> bool {
 impl Button {
     fn with_config(cfg: ButtonConfig) -> Button {
         let layer = cfg.layer;
+        let icon_width =
+            (cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE) as f64 * ICON_SCALE).round() as i32;
+        let icon_height =
+            (cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE) as f64 * ICON_SCALE).round() as i32;
         let mut button = if let Some(text) = cfg.text {
             Button::new_text(text, cfg.action)
         } else if let Some(status_path) = cfg.media_status {
@@ -314,8 +357,8 @@ impl Button {
                     .expect("media button requires PlayingIcon"),
                 status_path,
                 cfg.action,
-                cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
-                cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE),
+                icon_width,
+                icon_height,
             )
         } else if let Some(status_path) = cfg.voice_status {
             Button::new_voice(
@@ -325,17 +368,11 @@ impl Button {
                     .expect("voice button requires ActiveIcon"),
                 status_path,
                 cfg.action,
-                cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
-                cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE),
+                icon_width,
+                icon_height,
             )
         } else if let Some(icon) = cfg.icon {
-            Button::new_icon(
-                &icon,
-                cfg.theme,
-                cfg.action,
-                cfg.icon_width.unwrap_or(DEFAULT_ICON_SIZE),
-                cfg.icon_height.unwrap_or(DEFAULT_ICON_SIZE),
-            )
+            Button::new_icon(&icon, cfg.theme, cfg.action, icon_width, icon_height)
         } else if let Some(time) = cfg.time {
             Button::new_time(cfg.action, &time, cfg.locale.as_deref())
         } else if let Some(battery_mode) = cfg.battery {
@@ -920,7 +957,14 @@ impl FunctionLayer {
                     config.foreground_color.2,
                     surface_alpha,
                 );
-                c.rectangle(card_left, CARD_VERTICAL_INSET_PX, card_width, card_height);
+                rounded_rectangle(
+                    &c,
+                    card_left,
+                    CARD_VERTICAL_INSET_PX,
+                    card_width,
+                    card_height,
+                    CARD_CORNER_RADIUS_PX,
+                );
                 c.fill().unwrap();
 
                 c.set_source_rgba(
@@ -930,7 +974,14 @@ impl FunctionLayer {
                     outline_alpha,
                 );
                 c.set_line_width(outline_width);
-                c.rectangle(card_left, CARD_VERTICAL_INSET_PX, card_width, card_height);
+                rounded_rectangle(
+                    &c,
+                    card_left,
+                    CARD_VERTICAL_INSET_PX,
+                    card_width,
+                    card_height,
+                    CARD_CORNER_RADIUS_PX,
+                );
                 c.stroke().unwrap();
             }
             c.set_source_rgb(
